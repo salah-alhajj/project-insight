@@ -10,7 +10,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -19,7 +21,12 @@
         "command": "project-analysis.refresh",
         "title": "Refresh Project Analysis",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "project-analysis.initialize",
+        "title": "Initialize Full Extension Functionality"
       }
+      
     ],
     "viewsContainers": {
       "activitybar": [
@@ -50,6 +57,22 @@
   "configuration": {
       "title": "Project Analysis",
       "properties": {
+        "projectAnalysis.excludeFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["node_modules", ".git","vscode"],
+          "description": "Folders to exclude from the analysis."
+        },
+        "projectAnalysis.includeFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Specific folders to include in the analysis. If not empty, only these folders will be analyzed."
+        },
         "projectAnalysis.includeExtensions": {
           "type": "array",
           "items": {

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getExtensionMap } from './extensions/map';
 
 export function activate(context: vscode.ExtensionContext) {
     const projectAnalysisProvider = new ProjectAnalysisProvider();
@@ -52,21 +53,13 @@ class ProjectAnalysisProvider implements vscode.TreeDataProvider<ExtensionItem |
         const includeExtensions = config.get<string[]>('includeExtensions', []);
         const excludeExtensions = config.get<string[]>('excludeExtensions', []);
 
-        console.log(`Checking file: ${filePath}`);
-        console.log(`Include extensions: ${includeExtensions}`);
-        console.log(`Exclude extensions: ${excludeExtensions}`);
-
         // If includeExtensions is not empty, only include files with those extensions
         if (includeExtensions.length > 0) {
-            const shouldInclude = includeExtensions.includes(ext);
-            console.log(`Include list not empty. Should include: ${shouldInclude}`);
-            return shouldInclude;
+            return includeExtensions.includes(ext);
         }
 
         // If includeExtensions is empty, include all files except those in excludeExtensions
-        const shouldExclude = excludeExtensions.includes(ext);
-        console.log(`Exclude list. Should exclude: ${shouldExclude}`);
-        return !shouldExclude;
+        return !excludeExtensions.includes(ext);
     }
 
     private traverseDirectory(dirPath: string, extensionsMap: Map<string, { count: number, lines: number }>): void {
@@ -149,6 +142,10 @@ class ProjectAnalysisProvider implements vscode.TreeDataProvider<ExtensionItem |
 }
 
 
+const ThemeIcon = {
+    File: new vscode.ThemeIcon('file'),
+    Folder: new vscode.ThemeIcon('folder')
+};
 class ExtensionItem extends vscode.TreeItem {
     constructor(
         public readonly extension: string,
@@ -158,64 +155,13 @@ class ExtensionItem extends vscode.TreeItem {
         super(ExtensionItem.getExtensionName(extension), vscode.TreeItemCollapsibleState.Collapsed);
         this.contextValue = 'extension';
         this.description = `${count} files, ${lines} lines`;
-        this.iconPath = ExtensionItem.getIconForExtension(extension);
+        this.resourceUri = vscode.Uri.file(`dummy${extension}`);
+        this.iconPath = ThemeIcon.File;
     }
 
     static getExtensionName(extension: string): string {
-        const extensionMap: { [key: string]: string } = {
-            '.js': 'JavaScript',
-            '.ts': 'TypeScript',
-            '.py': 'Python',
-            '.html': 'HTML',
-            '.css': 'CSS',
-            '.json': 'JSON',
-            '.md': 'Markdown',
-            // Add more mappings as needed
-        };
+        const extensionMap: { [key: string]: string } = getExtensionMap;
         return extensionMap[extension] || extension.slice(1).toUpperCase();
-    }
-
-    static getIconForExtension(extension: string): vscode.ThemeIcon {
-        const iconMap: { [key: string]: string } = {
-            '.js': 'javascript',
-            '.ts': 'typescript',
-            '.py': 'python',
-            '.html': 'html',
-            '.css': 'css',
-            '.scss': 'css',
-            '.less': 'css',
-            '.json': 'json',
-            '.md': 'markdown',
-            '.xml': 'code',
-            '.svg': 'svg',
-            '.png': 'image',
-            '.jpg': 'image',
-            '.jpeg': 'image',
-            '.gif': 'image',
-            '.txt': 'text',
-            '.pdf': 'pdf',
-            '.doc': 'word',
-            '.docx': 'word',
-            '.xls': 'excel',
-            '.xlsx': 'excel',
-            '.ppt': 'powerpoint',
-            '.pptx': 'powerpoint',
-            '.c': 'c',
-            '.cpp': 'cpp',
-            '.cs': 'csharp',
-            '.java': 'java',
-            '.rb': 'ruby',
-            '.php': 'php',
-            '.go': 'go',
-            '.rs': 'rust',
-            '.swift': 'swift',
-            '.dart': 'dart',
-            '.vue': 'vue',
-            '.jsx': 'react',
-            '.tsx': 'react',
-        };
-
-        return new vscode.ThemeIcon(iconMap[extension] || 'file');
     }
 }
 

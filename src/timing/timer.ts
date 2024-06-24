@@ -1,20 +1,40 @@
 import * as vscode from 'vscode';
 import { FileTimings } from './interface';
+// import { DatabaseManager } from '../database'; 
 
-
-
-export  class CodingTimerExtension {
+export class CodingTimerExtension {
     private timings: FileTimings = {};
     private writeTimeout: NodeJS.Timeout | undefined;
     private disposables: vscode.Disposable[] = [];
+    private dbManager: DatabaseManager;
 
     constructor(private context: vscode.ExtensionContext) {
+        this.dbManager = new DatabaseManager();
+        this.loadTimings();
         this.registerEventHandlers();
+    }
+
+    private async loadTimings(): Promise<void> {
+        try {
+            this.timings = await this.dbManager.loadAllTimings();
+            console.log('Loaded saved timings');
+        } catch (error) {
+            console.error('Error loading timings', error);
+            vscode.window.showErrorMessage('Failed to load coding timings. Some features may not work correctly.');
+        }
     }
 
     private registerEventHandlers(): void {
         const onDidChangeTextDocument = vscode.workspace.onDidChangeTextDocument(this.handleTextDocumentChange.bind(this));
-        this.disposables.push(onDidChangeTextDocument);
+        const onDidChangeWorkspaceFolders = vscode.workspace.onDidChangeWorkspaceFolders(this.handleWorkspaceFoldersChange.bind(this));
+        
+        this.disposables.push(onDidChangeTextDocument, onDidChangeWorkspaceFolders);
+    }
+
+    private async handleWorkspaceFoldersChange(): Promise<void> {
+        await this.dbManager.close();
+        this.dbManager = new DatabaseManager();
+        await this.loadTimings();
     }
 
     private handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): void {
@@ -48,14 +68,20 @@ export  class CodingTimerExtension {
         }, 5000);
     }
 
-    private stopWriting(filePath: string): void {
+    private async stopWriting(filePath: string): Promise<void> {
         if (this.timings[filePath] && this.timings[filePath].isWriting) {
             const now = Date.now();
             const finalEditDuration = now - this.timings[filePath].lastEdit;
             this.timings[filePath].totalTime += finalEditDuration;
             this.timings[filePath].isWriting = false;
-            console.log(`Stopped writing in ${filePath}. Total writing time: ${this.timings[filePath].totalTime / 1000} seconds`);
-            // Here you could persist the data, update UI, etc.
+            console.log(`msg: Stopped writing in ${filePath}. Total writing time: ${this.timings[filePath].totalTime / 1000} seconds`);
+            
+            try {
+                await this.dbManager.saveTimings(filePath, this.timings[filePath]);
+            } catch (error) {
+                console.error('Error saving timings', error);
+                vscode.window.showErrorMessage('Failed to save coding timings. Some data may be lost.');
+            }
         }
     }
 
@@ -63,27 +89,48 @@ export  class CodingTimerExtension {
         return this.timings;
     }
 
-    public stopAllWriting(): void {
-        Object.keys(this.timings).forEach(filePath => {
-            this.stopWriting(filePath);
-        });
+    public async getTotalTimeForFile(filePath: string): Promise<number> {
+        try {
+            return await this.dbManager.getTotalTimeForFile(filePath);
+        } catch (error) {
+            console.error('Error getting total time for file', error);
+            vscode.window.showErrorMessage('Failed to retrieve total time for file.');
+            return 0;
+        }
     }
 
-    public dispose(): void {
-        this.stopAllWriting();
+    public async getTotalTimeForAllFiles(): Promise<number> {
+        try {
+            return await this.dbManager.getTotalTimeForAllFiles();
+        } catch (error) {
+            console.error('Error getting total time for all files', error);
+            vscode.window.showErrorMessage('Failed to retrieve total coding time.');
+            return 0;
+        }
+    }
+
+    public async getTopNFiles(n: number): Promise<Array<{ filePath: string, totalTime: number }>> {
+        try {
+            return await this.dbManager.getTopNFiles(n);
+        } catch (error) {
+            console.error('Error getting top files', error);
+            vscode.window.showErrorMessage('Failed to retrieve top files by coding time.');
+            return [];
+        }
+    }
+
+    public async stopAllWriting(): Promise<void> {
+        for (const filePath of Object.keys(this.timings)) {
+            await this.stopWriting(filePath);
+        }
+    }
+
+    public async dispose(): Promise<void> {
+        await this.stopAllWriting();
         if (this.writeTimeout) {
             clearTimeout(this.writeTimeout);
         }
         this.disposables.forEach(d => d.dispose());
+        await this.dbManager.close();
     }
 }
-
-export function codingTimerExtension(context: vscode.ExtensionContext): void {
-    const extension = new CodingTimerExtension(context);
-    context.subscriptions.push(extension);
-
-    console.log('Coding Timer Extension has been activated and is ready to detect writing');
-}
-
-
-

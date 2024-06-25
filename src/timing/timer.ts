@@ -1,15 +1,16 @@
 import * as vscode from 'vscode';
 import { FileTimings } from './interface';
-// import { DatabaseManager } from '../database'; 
+import { DatabaseManager } from '../database';
+import path from 'path';
 
 export class CodingTimerExtension {
     private timings: FileTimings = {};
     private writeTimeout: NodeJS.Timeout | undefined;
     private disposables: vscode.Disposable[] = [];
-    private dbManager: DatabaseManager;
+    private dbManager: DatabaseManager=DatabaseManager.getInstance();
 
-    constructor(private context: vscode.ExtensionContext) {
-        this.dbManager = new DatabaseManager();
+    constructor( ) {
+        
         this.loadTimings();
         this.registerEventHandlers();
     }
@@ -33,11 +34,14 @@ export class CodingTimerExtension {
 
     private async handleWorkspaceFoldersChange(): Promise<void> {
         await this.dbManager.close();
-        this.dbManager = new DatabaseManager();
         await this.loadTimings();
     }
 
     private handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): void {
+
+        if (path.dirname(event.document.uri.fsPath).includes('.vscode')) {
+            return;
+        }
         const filePath = event.document.uri.fsPath;
         const now = Date.now();
 
@@ -72,7 +76,7 @@ export class CodingTimerExtension {
         if (this.timings[filePath] && this.timings[filePath].isWriting) {
             const now = Date.now();
             const finalEditDuration = now - this.timings[filePath].lastEdit;
-            this.timings[filePath].totalTime += finalEditDuration;
+            this.timings[filePath].totalTime += (finalEditDuration-5000);
             this.timings[filePath].isWriting = false;
             console.log(`msg: Stopped writing in ${filePath}. Total writing time: ${this.timings[filePath].totalTime / 1000} seconds`);
             
@@ -114,7 +118,7 @@ export class CodingTimerExtension {
             return await this.dbManager.getTopNFiles(n);
         } catch (error) {
             console.error('Error getting top files', error);
-            vscode.window.showErrorMessage('Failed to retrieve top files by coding time.');
+            vscode.window.showErrorMessage(`Failed to retrieve top files by coding time.`);
             return [];
         }
     }

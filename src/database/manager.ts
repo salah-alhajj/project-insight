@@ -1,188 +1,141 @@
-import * as sqlite3 from 'sqlite3'; 
-import * as path from 'path';
 import * as vscode from 'vscode';
+import * as path from 'path';
 import * as fs from 'fs';
+import Datastore from 'nedb';
 import { FileTimings } from '../timing/interface';
-import { CodingTimeRow, TotalTimeRow } from './interface';
+
+
+ interface CodingTimeRow {
+    file_path: string;
+    last_edit: number;
+    total_time: number;
+    is_writing: number;
+}
 
 export class DatabaseManager {
-    private db: sqlite3.Database | null = null;
-    private dbPath: string | null = null;
+    private static instance: DatabaseManager | null = null;
+    private static context: vscode.ExtensionContext | null = null;
+    private db: Datastore | null = null;
 
-    constructor() {
-        this.initializeDatabase();
-    }
-
-    private initializeDatabase(): void {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            console.error('No workspace folder open');
-            vscode.window.showErrorMessage('Please open a workspace folder to use the Coding Timer extension.');
+    private constructor(context: vscode.ExtensionContext) {
+        // 1. Robust Database Path Resolution
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            console.error("msg_err: No workspace folder found. Cannot initialize database.");
             return;
         }
 
-        const workspaceRoot = workspaceFolders[0].uri.fsPath;
-        const vscodePath = path.join(workspaceRoot, '.vscode');
-        
-        if (!fs.existsSync(vscodePath)) {
-            fs.mkdirSync(vscodePath);
+        const dbPath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'coding-times.db');
+        fs.mkdirSync(path.dirname(dbPath), { recursive: true }); // Ensure directory exists
+
+        this.db = new Datastore({ filename: dbPath, autoload: true });
+    }
+
+    public static getInstance(context?: vscode.ExtensionContext): DatabaseManager {
+        if (DatabaseManager.instance === null) {
+            if (!context) {
+                throw new Error("DatabaseManager has not been initialized. Please provide a context.");
+            }
+            DatabaseManager.context = context;
+            DatabaseManager.instance = new DatabaseManager(context);
         }
-
-        this.dbPath = path.join(vscodePath, 'coding_timer.db');
-        this.db = new sqlite3.Database(this.dbPath, (err) => {
-            if (err) {
-                console.error('Error opening database', err);
-                vscode.window.showErrorMessage('Failed to open the database. Some features may not work correctly.');
-            } else {
-                console.log('Database opened successfully');
-                this.createTable();
-            }
-        });
+        return DatabaseManager.instance;
     }
 
-    private createTable(): void {
-        if (!this.db) return;
+    
+    public saveTimings(filePath: string, data: { lastEdit: number, totalTime: number, isWriting: boolean }): void {
+        if (!this.db) {
+            return;
 
-        const sql = `
-        CREATE TABLE IF NOT EXISTS coding_times (
-            file_path TEXT PRIMARY KEY,
-            last_edit INTEGER,
-            total_time INTEGER,
-            is_writing INTEGER
-        )`;
-        this.db.run(sql, (err) => {
-            if (err) {
-                console.error('Error creating table', err);
-            } else {
-                console.log('Table created or already exists');
+        };
+        this.db.update(
+            { file_path: filePath },
+            { file_path: filePath, last_edit: data.lastEdit, total_time: data.totalTime, is_writing: data.isWriting ? 1 : 0 },
+            { upsert: true },
+            (err) => {
+                if (err) {
+                    console.error('msg_err: Error saving timings:', err);
+                }
             }
-        });
+        );
     }
 
-    public saveTimings(filePath: string, data: { lastEdit: number, totalTime: number, isWriting: boolean }): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
-                reject(new Error('Database not initialized'));
+    public loadAllTimings(): FileTimings {
+        if (!this.db) {
+            return {};
+        } 
+        const timings: FileTimings = {};
+        this.db.find({}, (err: any, docs: CodingTimeRow[]) => {
+            if (err) {
+                console.error('msg_err: Error loading timings:', err);
                 return;
             }
-
-            const sql = `
-            INSERT OR REPLACE INTO coding_times (file_path, last_edit, total_time, is_writing)
-            VALUES (?, ?, ?, ?)
-            `;
-            this.db.run(sql, [filePath, data.lastEdit, data.totalTime, data.isWriting ? 1 : 0], (err) => {
-                if (err) {
-                    console.error('Error saving timing', err);
-                    reject(err);
-                } else {
-                    console.log(`Saved timing for ${filePath}`);
-                    resolve();
-                }
+            docs.forEach((row) => {
+                timings[row.file_path] = {
+                    lastEdit: row.last_edit,
+                    totalTime: row.total_time,
+                    isWriting: Boolean(row.is_writing)
+                };
             });
         });
-    }
-
-    public loadAllTimings(): Promise<FileTimings> {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
-                reject(new Error('Database not initialized'));
-                return;
-            }
-
-            const sql = 'SELECT * FROM coding_times';
-            this.db.all<CodingTimeRow>(sql, [], (err, rows) => {
-                if (err) {
-                    console.error('Error loading timings', err);
-                    reject(err);
-                } else {
-                    const timings: FileTimings = {};
-                    rows.forEach((row) => {
-                        timings[row.file_path] = {
-                            lastEdit: row.last_edit,
-                            totalTime: row.total_time,
-                            isWriting: Boolean(row.is_writing)
-                        };
-                    });
-                    resolve(timings);
-                }
-            });
-        });
+        return timings;
     }
 
     public getTotalTimeForFile(filePath: string): Promise<number> {
+        if (!this.db) {return Promise.resolve(0);}
         return new Promise((resolve, reject) => {
-            if (!this.db) {
-                reject(new Error('Database not initialized'));
-                return;
-            }
-
-            const sql = 'SELECT total_time FROM coding_times WHERE file_path = ?';
-            this.db.get<CodingTimeRow>(sql, [filePath], (err, row) => {
+            this.db!.findOne({ file_path: filePath }, (err, doc: { total_time: number } | null) => {
                 if (err) {
-                    console.error('Error getting total time for file', err);
-                    reject(err);
+                    console.error('msg_err: Error getting total time for file:', err);
+                    return reject(err);
+                }
+                if (doc) {
+                    console.log(`msg: Retrieved total time for ${filePath}:`, doc.total_time);
+                    return resolve(doc.total_time);
                 } else {
-                    resolve(row ? row.total_time : 0);
+                    console.log(`msg: No total time found for ${filePath}`);
+                    return resolve(0);
                 }
             });
         });
     }
 
-    public getTotalTimeForAllFiles(): Promise<number> {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
-                reject(new Error('Database not initialized'));
+    public getTotalTimeForAllFiles(): number {
+        if (!this.db) {return 0;}
+        let totalTime = 0;
+        this.db.find({}, (err: any, docs: { total_time: number }[]) => {
+            if (err) {
+                console.error('msg_err: Error getting total time for all files:', err);
                 return;
             }
-
-            const sql = 'SELECT SUM(total_time) as total FROM coding_times';
-            this.db.get<TotalTimeRow>(sql, [], (err, row) => {
-                if (err) {
-                    console.error('Error getting total time for all files', err);
-                    reject(err);
-                } else {
-                    resolve(row ? row.total : 0);
-                }
+            docs.forEach((doc) => {
+                totalTime += doc.total_time;
             });
         });
+        return totalTime;
     }
 
     public getTopNFiles(n: number): Promise<Array<{ filePath: string, totalTime: number }>> {
+        if (!this.db) {return Promise.resolve([]);}
         return new Promise((resolve, reject) => {
-            if (!this.db) {
-                reject(new Error('Database not initialized'));
-                return;
-            }
-
-            const sql = 'SELECT file_path, total_time FROM coding_times ORDER BY total_time DESC LIMIT ?';
-            this.db.all<CodingTimeRow>(sql, [n], (err, rows) => {
-                if (err) {
-                    console.error('Error getting top files', err);
-                    reject(err);
-                } else {
-                    resolve(rows.map(row => ({ filePath: row.file_path, totalTime: row.total_time })));
-                }
-            });
+            this.db!.find({})
+                .sort({ total_time: -1 })
+                .limit(n)
+                .exec((err, docs: { file_path: string, total_time: number }[]) => {
+                    if (err) {
+                        console.error('msg_err: Error getting top N files:', err);
+                        return reject(err);
+                    }
+                    const topFiles = docs.map((row) => ({ filePath: row.file_path, totalTime: row.total_time }));
+                    resolve(topFiles);
+                });
         });
     }
+    
+    
 
-    public close(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
-                resolve();
-                return;
-            }
-
-            this.db.close((err) => {
-                if (err) {
-                    console.error('Error closing database', err);
-                    reject(err);
-                } else {
-                    console.log('Database closed');
-                    this.db = null;
-                    resolve();
-                }
-            });
-        });
+    public close(): void {
+        // NeDB does not require explicit close operation
+        this.db = null;
     }
 }

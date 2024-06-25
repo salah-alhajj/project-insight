@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ThemeIcon } from 'vscode';
-import { getExtensionMap } from '../extensions/map';
+import { getExtensionMap } from './map';
 export class ExtensionItem extends vscode.TreeItem {
     constructor(
         public readonly extension: string,

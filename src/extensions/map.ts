@@ -1,6 +1,6 @@
 export const getExtensionMap: { [key: string]: string } = {
     '.js': 'JavaScript',
-    '.js.map': 'JavaScript',
+    '.js.': 'JavaScript',
     '.ts': 'TypeScript',
     '.py': 'Python',
     '.html': 'HTML',

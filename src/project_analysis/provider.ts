@@ -1,10 +1,17 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ExtensionItem } from './extension_item';
+import { ExtensionItem } from '../extensions';
 import { FileItem } from './file_item';
+import { DatabaseManager } from '../database';
+import { formatTime } from './formater';
 export class ProjectAnalysisProvider implements vscode.TreeDataProvider<ExtensionItem | FileItem> {
+    constructor(){
+        const dbManager=DatabaseManager.getInstance();
+    }
     private _onDidChangeTreeData: vscode.EventEmitter<ExtensionItem | FileItem | undefined | null | void> = new vscode.EventEmitter<ExtensionItem | FileItem | undefined | null | void>();
+    private dbManager: DatabaseManager=DatabaseManager.getInstance();
+
     readonly onDidChangeTreeData: vscode.Event<ExtensionItem | FileItem | undefined | null | void> = this._onDidChangeTreeData.event;
     private getConfig() {
         return vscode.workspace.getConfiguration('projectAnalysis', vscode.workspace.workspaceFolders![0].uri);
@@ -95,13 +102,13 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
     }
 
 
-    private getFilesForExtension(extension: string): FileItem[] {
+    private async getFilesForExtension(extension: string): Promise<FileItem[]> {
         const files: FileItem[] = [];
-        this.findFilesWithExtension(vscode.workspace.workspaceFolders![0].uri.fsPath, extension, files);
+        await this.findFilesWithExtension(vscode.workspace.workspaceFolders![0].uri.fsPath, extension, files);
         return files;
     }
 
-    private findFilesWithExtension(dirPath: string, extension: string, files: FileItem[]): void {
+    private async findFilesWithExtension(dirPath: string, extension: string, files: FileItem[]): Promise<void> {
         if (!this.shouldIncludeFolder(dirPath)) {
             return;
         }
@@ -112,20 +119,22 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
                 const filePath = path.join(dirPath, file);
                 const stats = fs.statSync(filePath);
                 if (stats.isDirectory()) {
-                    this.findFilesWithExtension(filePath, extension, files);
+                    await this.findFilesWithExtension(filePath, extension, files);
                 } else if (this.getFileExtension(filePath) === extension && this.shouldIncludeFile(filePath)) {
                     const lineCount = this.getLineCount(filePath);
                     const charCount = this.getCharCount(filePath);
                     const sizeInKB = (stats.size / 1024).toFixed(2);
+                    const totalTime = await this.dbManager.getTotalTimeForFile(filePath);
+                    console.log(`Total time for file ${filePath}: ${totalTime}`);
                     files.push(new FileItem(
                         vscode.Uri.file(filePath),
-                        `${file} (${lineCount} lines, ${charCount} chars, ${sizeInKB} KB)`,
+                        `${file} (${lineCount} lines, ${charCount} chars, ${sizeInKB} KB, ${formatTime(totalTime)} )`,
                         vscode.TreeItemCollapsibleState.None
                     ));
                 }
             }
         } catch (error) {
-            console.error(`Error finding files in ${dirPath}: ${error}`);
+            console.error(`err_msg: Error finding files in ${dirPath}: ${error}`);
         }
     }
 
@@ -134,7 +143,7 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
             const content = fs.readFileSync(filePath, 'utf8');
             return content.split('\n').length;
         } catch (error) {
-            console.error(`Error reading file ${filePath}: ${error}`);
+            console.error(`err_msg: Error reading file ${filePath}: ${error}`);
             return 0;
         }
     }
@@ -144,7 +153,7 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
             const content = fs.readFileSync(filePath, 'utf8');
             return content.length;
         } catch (error) {
-            console.error(`Error reading file ${filePath}: ${error}`);
+            console.error(`err_msg: Error reading file ${filePath}: ${error}`);
             return 0;
         }
     }

@@ -97,7 +97,6 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
                 }
             }
         } catch (error) {
-            console.error(`Error traversing directory ${dirPath}: ${error}`);
         }
     }
 
@@ -125,7 +124,6 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
                     const charCount = this.getCharCount(filePath);
                     const sizeInKB = (stats.size / 1024).toFixed(2);
                     const totalTime = await this.dbManager.getTotalTimeForFile(filePath);
-                    console.log(`Total time for file ${filePath}: ${totalTime}`);
                     files.push(new FileItem(
                         vscode.Uri.file(filePath),
                         `${file} (${lineCount} lines, ${charCount} chars, ${sizeInKB} KB, ${formatTime(totalTime)} )`,
@@ -134,7 +132,6 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
                 }
             }
         } catch (error) {
-            console.error(`err_msg: Error finding files in ${dirPath}: ${error}`);
         }
     }
 
@@ -143,7 +140,6 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
             const content = fs.readFileSync(filePath, 'utf8');
             return content.split('\n').length;
         } catch (error) {
-            console.error(`err_msg: Error reading file ${filePath}: ${error}`);
             return 0;
         }
     }
@@ -153,7 +149,6 @@ export class ProjectAnalysisProvider implements vscode.TreeDataProvider<Extensio
             const content = fs.readFileSync(filePath, 'utf8');
             return content.length;
         } catch (error) {
-            console.error(`err_msg: Error reading file ${filePath}: ${error}`);
             return 0;
         }
     }

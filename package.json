@@ -4,7 +4,7 @@
   "displayName": "Project Insight",
   "icon": "assets/logo2.png",
   "description": "Project Insight is a Visual Studio Code extension that tracks coding time and analyzes project structure. It provides detailed statistics on file usage, lines of code, and time spent coding in different files. The extension offers a tree view in the sidebar for easy visualization of project metrics and file information. It uses a local database to persistently store coding data, allowing users to gain long-term insights into their coding patterns and project evolution.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "salah-aldain",
 
   "engines": {

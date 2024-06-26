@@ -18,7 +18,6 @@ export class CodingTimerExtension {
     private async loadTimings(): Promise<void> {
         try {
             this.timings = await this.dbManager.loadAllTimings();
-            console.log('Loaded saved timings');
         } catch (error) {
             console.error('Error loading timings', error);
             vscode.window.showErrorMessage('Failed to load coding timings. Some features may not work correctly.');
@@ -78,7 +77,9 @@ export class CodingTimerExtension {
             const finalEditDuration = now - this.timings[filePath].lastEdit;
             this.timings[filePath].totalTime += (finalEditDuration-5000);
             this.timings[filePath].isWriting = false;
-            console.log(`msg: Stopped writing in ${filePath}. Total writing time: ${this.timings[filePath].totalTime / 1000} seconds`);
+            // call command project-insight.refresh
+            vscode.commands.executeCommand('project-insight.refresh');
+
             
             try {
                 await this.dbManager.saveTimings(filePath, this.timings[filePath]);

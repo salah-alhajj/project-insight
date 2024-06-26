@@ -21,7 +21,6 @@ export class DatabaseManager {
         // 1. Robust Database Path Resolution
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) {
-            console.error("msg_err: No workspace folder found. Cannot initialize database.");
             return;
         }
 
@@ -54,7 +53,6 @@ export class DatabaseManager {
             { upsert: true },
             (err) => {
                 if (err) {
-                    console.error('msg_err: Error saving timings:', err);
                 }
             }
         );
@@ -67,7 +65,6 @@ export class DatabaseManager {
         const timings: FileTimings = {};
         this.db.find({}, (err: any, docs: CodingTimeRow[]) => {
             if (err) {
-                console.error('msg_err: Error loading timings:', err);
                 return;
             }
             docs.forEach((row) => {
@@ -86,14 +83,11 @@ export class DatabaseManager {
         return new Promise((resolve, reject) => {
             this.db!.findOne({ file_path: filePath }, (err, doc: { total_time: number } | null) => {
                 if (err) {
-                    console.error('msg_err: Error getting total time for file:', err);
                     return reject(err);
                 }
                 if (doc) {
-                    console.log(`msg: Retrieved total time for ${filePath}:`, doc.total_time);
                     return resolve(doc.total_time);
                 } else {
-                    console.log(`msg: No total time found for ${filePath}`);
                     return resolve(0);
                 }
             });
@@ -105,7 +99,6 @@ export class DatabaseManager {
         let totalTime = 0;
         this.db.find({}, (err: any, docs: { total_time: number }[]) => {
             if (err) {
-                console.error('msg_err: Error getting total time for all files:', err);
                 return;
             }
             docs.forEach((doc) => {
@@ -123,7 +116,6 @@ export class DatabaseManager {
                 .limit(n)
                 .exec((err, docs: { file_path: string, total_time: number }[]) => {
                     if (err) {
-                        console.error('msg_err: Error getting top N files:', err);
                         return reject(err);
                     }
                     const topFiles = docs.map((row) => ({ filePath: row.file_path, totalTime: row.total_time }));

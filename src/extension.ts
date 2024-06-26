@@ -8,7 +8,7 @@ import { DatabaseManager } from './database';
 let codingTimer: CodingTimerExtension | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    const dbManager0 = DatabaseManager.getInstance(context);
+    DatabaseManager.getInstance(context);
 
     
 
@@ -28,7 +28,6 @@ export function activate(context: vscode.ExtensionContext) {
         codingTimer = new CodingTimerExtension();
 
         context.subscriptions.push(codingTimer);
-        console.log('msg: Coding Timer Extension has been activated and is ready to detect writing');
 
         
     } catch (error) {
@@ -40,7 +39,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(refreshCommand);
 
 
-    console.log('msg: Coding Timer Extension has been activated and is ready to detect writing');
 }
 
 
@@ -49,5 +47,4 @@ export function deactivate() {
     if (codingTimer) {
         codingTimer.dispose();
     }
-    console.log('Project Insight extension deactivated');
 }

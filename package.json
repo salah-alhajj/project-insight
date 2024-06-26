@@ -1,6 +1,6 @@
 {
-  "name": "project-analysis",
-  "displayName": "project analysis",
+  "name": "project-insight",
+  "displayName": "Project Insight",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -16,24 +16,24 @@
   "contributes": {
     "commands": [
       {
-        "command": "project-analysis.refresh",
-        "title": "Refresh Project Analysis",
+        "command": "project-insight.refresh",
+        "title": "Refresh Project Insight",
         "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "project-analysis",
-          "title": "Project Analysis",
+          "id": "project-insight",
+          "title": "Project Insight",
           "icon": "assets/logo.svg"
         }
       ]
     },
     "views": {
-      "project-analysis": [
+      "project-insight": [
         {
-          "id": "project-analysis-view",
+          "id": "project-insight-view",
           "name": "Project Structure"
         }
       ]
@@ -41,14 +41,14 @@
     "menus": {
       "view/title": [
         {
-          "command": "project-analysis.refresh",
-          "when": "view == project-analysis-view",
+          "command": "project-insight.refresh",
+          "when": "view == project-insight-view",
           "group": "navigation"
         }
       ]
     },
     "configuration": {
-      "title": "Project Analysis",
+      "title": "Project Insight",
       "properties": {
         "projectAnalysis.excludeFolders": {
           "type": "array",

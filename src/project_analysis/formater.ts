@@ -1,4 +1,3 @@
-// timeUtils.ts
 
 export function formatTime(ms: number): string {
     const milliseconds = ms % 1000;

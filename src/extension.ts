@@ -18,10 +18,10 @@ export function activate(context: vscode.ExtensionContext) {
     }
     const projectAnalysisProvider=new ProjectAnalysisProvider();
 
-    let refreshCommand = vscode.commands.registerCommand('project-analysis.refresh', () => {
+    let refreshCommand = vscode.commands.registerCommand('project-insight.refresh', () => {
         projectAnalysisProvider.refresh();
     });
-    vscode.window.registerTreeDataProvider('project-analysis-view', projectAnalysisProvider);
+    vscode.window.registerTreeDataProvider('project-insight-view', projectAnalysisProvider);
     
     try {
 
@@ -49,5 +49,5 @@ export function deactivate() {
     if (codingTimer) {
         codingTimer.dispose();
     }
-    console.log('Project Analysis extension deactivated');
+    console.log('Project Insight extension deactivated');
 }

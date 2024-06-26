@@ -2,9 +2,9 @@
 
 <img src="assets/logo2.png" alt="Project Insight Logo" width="200" height="200">
 
-[![Version](https://img.shields.io/visual-studio-marketplace/v/YourPublisherName.project-insight)](https://marketplace.visualstudio.com/items?itemName=YourPublisherName.project-insight)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/YourPublisherName.project-insight)](https://marketplace.visualstudio.com/items?itemName=YourPublisherName.project-insight)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/YourPublisherName.project-insight)](https://marketplace.visualstudio.com/items?itemName=YourPublisherName.project-insight)
+[![Version](https://img.shields.io/visual-studio-marketplace/v/salah-aldain.project-insight)](https://marketplace.visualstudio.com/items?itemName=salah-aldain.project-insight)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/salah-aldain.project-insight)](https://marketplace.visualstudio.com/items?itemName=salah-aldain.project-insight)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/salah-aldain.project-insight)](https://marketplace.visualstudio.com/items?itemName=salah-aldain.project-insight)
 [![License](https://img.shields.io/github/license/salah-alhajj/project-insight)](https://github.com/salah-alhajj/project-insight/blob/main/LICENSE)
 
 https://github.com/salah-alhajj/project-insight
@@ -48,7 +48,7 @@ Project Insight is a powerful Visual Studio Code extension that provides compreh
 
 ## 🚀 Getting Started
 
-1. Install the Project Insight extension from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=YourPublisherName.project-insight).
+1. Install the Project Insight extension from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=salah-aldain.project-insight).
 2. Open a project in VS Code.
 3. The Project Insight sidebar will automatically appear, showing your project analysis.
 4. Start coding, and watch as Project Insight tracks your time and updates the project statistics!
